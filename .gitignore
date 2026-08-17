@@ -1,0 +1,14 @@
+# 依赖与本机构建挂载（junction，绝不可提交）
+node_modules/
+
+# npm 打包产物
+*.tgz
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 本地测试残留
+.scratch-*

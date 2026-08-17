@@ -1,0 +1,19 @@
+# dsh-wallpaper bundle patch: inserts the dual-face plugin row into the web
+# profile roster. Mount recipe (no dsh source changes):
+#   1. pnpm build   (produces lib/index.js + lib/client.js)
+#   2. junction the package into the profile node_modules:
+#        New-Item -ItemType Junction -Path "$env:USERPROFILE\.dsh\profiles\web\node_modules\dsh-wallpaper" -Target <this dir>
+#   3. insert this row into the profile's cordis.patch.yml:
+#        - insert:
+#            - id: wallpaper
+#              name: 'dsh-wallpaper'
+#   4. restart `dsh web` (plugin-set changes take effect on restart).
+#
+# The row is a bare plugin by package name: the node half (exports ".") runs
+# in the host process (Wallpaper Engine scanner, /api/dsh-wallpaper routes,
+# agent tools), and the `dsh.client` declaration in package.json makes the
+# browser half (exports "./client", served at /plugins/<id>/client.js) load in
+# the web GUI.
+- insert:
+    - id: wallpaper
+      name: 'dsh-wallpaper'
