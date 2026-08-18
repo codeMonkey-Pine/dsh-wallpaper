@@ -46,9 +46,13 @@ function MediaElement(props: {
   const totalBlur = settings.blur + (enhanced ? SCENE_ENHANCE_BLUR : 0)
   if (totalBlur > 0) filters.push(`blur(${totalBlur}px)`)
   if (settings.parallax) filters.push(`scale(${PARALLAX_SCALE})`)
-  const innerStyle: React.CSSProperties = {
-    position: 'absolute',
-    inset: 0,
+  // The filter and opacity live on the media element itself, not on a wrapper:
+  // Chromium composites a playing <video> (and an <iframe>) on its own layer,
+  // so a filter on an ancestor is ignored and blur would silently not render.
+  const mediaStyle: React.CSSProperties = {
+    width: '100%',
+    height: '100%',
+    display: 'block',
     opacity: (settings.opacity / 100) * (enhanced ? SCENE_ENHANCE_OPACITY : 1),
     filter: filters.length > 0 ? filters.join(' ') : undefined,
   }
@@ -63,7 +67,7 @@ function MediaElement(props: {
       muted: true,
       loop: true,
       playsInline: true,
-      style: { objectFit, width: '100%', height: '100%', display: 'block' },
+      style: { ...mediaStyle, objectFit },
     })
   } else if (entry.type === 'web') {
     const query: string[] = []
@@ -76,7 +80,7 @@ function MediaElement(props: {
       sandbox: 'allow-scripts allow-same-origin',
       allow: 'autoplay',
       title: entry.title,
-      style: { width: '100%', height: '100%', border: 0, display: 'block' },
+      style: { ...mediaStyle, border: 0 },
     })
   } else {
     // image renders the source image; scene wallpapers degrade to their
@@ -88,7 +92,7 @@ function MediaElement(props: {
       src: url,
       alt: entry.title,
       draggable: false,
-      style: { objectFit, objectPosition: 'center', width: '100%', height: '100%', display: 'block' },
+      style: { ...mediaStyle, objectFit, objectPosition: 'center' },
     })
   }
 
@@ -100,7 +104,7 @@ function MediaElement(props: {
       'data-visible': props.visible ? '' : undefined,
       'data-anim': props.anim,
     },
-    React.createElement('div', { style: innerStyle }, media),
+    media,
     note !== undefined ? React.createElement('div', { className: 'wp-type-note' }, note) : null,
   )
 }
