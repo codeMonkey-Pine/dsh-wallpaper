@@ -1,7 +1,7 @@
 {
     "name":  "dsh-wallpaper",
-    "description":  "Wallpaper Engine integration for the dsh web GUI: scan the local Wallpaper Engine library (Steam workshop 431960 + local projects), use its wallpapers as the page background (image / video / web / scene-preview), and control them from a right-side \u0027澹佺焊璁捐\u0027 panel (opacity, scope, fill, blur, vignette, fps, parallax, carousel, theme linkage). Agent tools wallpaper_scan / wallpaper_list / wallpaper_set / wallpaper_config.",
-    "version":  "0.1.1",
+    "description":  "Wallpaper Engine integration for the dsh web GUI: scan the local Wallpaper Engine library (Steam workshop 431960 + local projects), use its wallpapers as the page background (image / video / web / scene-preview), and control them from a right-side \u0027婢逛胶鐒婄拋鎹愵吀\u0027 panel (opacity, scope, fill, blur, vignette, fps, parallax, carousel, theme linkage). Agent tools wallpaper_scan / wallpaper_list / wallpaper_set / wallpaper_config.",
+    "version":  "0.1.2",
     "type":  "module",
     "engines":  {
                     "node":  "^22.19.0 || \u003e=24.0.0"
