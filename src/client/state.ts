@@ -1,12 +1,14 @@
 /**
  * Browser-side settings store: the wallpaper settings persisted to
- * localStorage (`dsh.wallpaper.v1`), with host-desired-state merging on
- * boot. A tiny subscribe/getSnapshot/update class — no framework machinery,
- * so both the panel React tree and the layer React tree read the same source.
+ * localStorage (`dsh.wallpaper.v1`), the shared scanned-library state (both
+ * the panel and the layer read the SAME snapshot, so a rescan in the panel is
+ * immediately visible to the renderer), and host-desired-state merging on
+ * boot. A tiny subscribe/getSnapshot class — no framework machinery.
  * @module dsh-wallpaper/client/state
  */
 
-import { DEFAULT_SETTINGS, SETTINGS_KEY, type DesiredState, type WallpaperSettings } from '../protocol.ts'
+import { DEFAULT_SETTINGS, SETTINGS_KEY, type DesiredState, type LibrarySnapshot, type WallpaperSettings } from '../protocol.ts'
+import type { WallpaperApi } from './api.ts'
 
 /** Merge a partial settings object with defaults, clamping ranges. */
 function sanitize(patch: Partial<WallpaperSettings>): WallpaperSettings {
@@ -37,9 +39,12 @@ function loadPersisted(): WallpaperSettings {
   }
 }
 
-/** The settings store. */
+/** The settings + shared library store. */
 export class SettingsStore {
   private settings: WallpaperSettings
+  private library: LibrarySnapshot | null = null
+  private libraryError: string | null = null
+  private loadingLibrary = false
   private listeners = new Set<() => void>()
   /** True once the host desired state has been merged on boot. */
   private hostMerged = false
@@ -52,11 +57,28 @@ export class SettingsStore {
     return this.settings
   }
 
+  /** The shared scanned library (same object the panel and the layer see). */
+  getLibrary(): LibrarySnapshot | null {
+    return this.library
+  }
+
+  getLibraryError(): string | null {
+    return this.libraryError
+  }
+
+  isLoadingLibrary(): boolean {
+    return this.loadingLibrary
+  }
+
   subscribe(listener: () => void): () => void {
     this.listeners.add(listener)
     return () => {
       this.listeners.delete(listener)
     }
+  }
+
+  private notify(): void {
+    for (const listener of this.listeners) listener()
   }
 
   private persist(): void {
@@ -65,7 +87,7 @@ export class SettingsStore {
     } catch {
       // Storage full or blocked: the in-memory settings still apply this session.
     }
-    for (const listener of this.listeners) listener()
+    this.notify()
   }
 
   update(patch: Partial<WallpaperSettings>): void {
@@ -84,6 +106,35 @@ export class SettingsStore {
     if (Object.keys(patch).length === 0) return
     this.settings = sanitize({ ...this.settings, ...patch })
     this.persist()
+  }
+
+  /** Publish a library snapshot (used by loadLibrary and the config route). */
+  applyLibrary(snapshot: LibrarySnapshot, error: string | null = null): void {
+    this.library = snapshot
+    this.libraryError = error
+    this.loadingLibrary = false
+    this.notify()
+  }
+
+  /**
+   * Fetch the library into the shared store. The panel's 重新扫描 and the
+   * layer's boot both go through here, so a freshly scanned wallpaper is
+   * immediately resolvable by the renderer.
+   * @param api - the API client.
+   * @param force - true to rescan on the host, false to reuse its cache.
+   */
+  async loadLibrary(api: WallpaperApi, force = false): Promise<void> {
+    if (this.loadingLibrary) return
+    this.loadingLibrary = true
+    this.notify()
+    try {
+      const snapshot = await api.library(force)
+      this.applyLibrary(snapshot)
+    } catch (error) {
+      this.libraryError = error instanceof Error ? error.message : String(error)
+      this.loadingLibrary = false
+      this.notify()
+    }
   }
 
   /** The effective carousel playlist: the saved ids that exist, or the active wallpaper. */

@@ -204,8 +204,8 @@ function isDarkTheme(): boolean {
 export function WallpaperLayer(props: { store: SettingsStore; api: WallpaperApi }) {
   const { store, api } = props
   const [settings, setSettings] = useState<WallpaperSettings>(() => store.getSnapshot())
-  const [library, setLibrary] = useState<LibrarySnapshot | null>(null)
-  const [libraryError, setLibraryError] = useState<string | null>(null)
+  const [library, setLibrary] = useState<LibrarySnapshot | null>(() => store.getLibrary())
+  const [libraryError, setLibraryError] = useState<string | null>(() => store.getLibraryError())
   const [displayId, setDisplayId] = useState<string | null>(null)
   const [previousId, setPreviousId] = useState<string | null>(null)
   const [carouselIndex, setCarouselIndex] = useState(0)
@@ -216,30 +216,42 @@ export function WallpaperLayer(props: { store: SettingsStore; api: WallpaperApi 
   const playlistRef = useRef<string[]>([])
   const darkRef = useRef(isDarkTheme())
   const videoRefs = useRef<Set<HTMLVideoElement>>(new Set())
+  // One-shot library refresh per unknown active id (covers wallpapers scanned
+  // after this component mounted, e.g. added to WE while the GUI was open).
+  const refreshedForRef = useRef<string | null>(null)
 
   // ------------------------------------------------------------- library
   useEffect(() => {
     let alive = true
-    void (async () => {
-      try {
-        const snapshot = await api.library(false)
-        if (!alive) return
-        setLibrary(snapshot)
-        const desired = await api.desiredState().catch(() => undefined)
-        if (!alive) return
-        if (desired !== undefined) store.mergeDesired(desired)
-      } catch (error) {
-        if (!alive) return
-        setLibraryError(error instanceof Error ? error.message : String(error))
-      }
-    })()
-    const unsubscribe = store.subscribe(() => setSettings(store.getSnapshot()))
+    // The shared store owns the library: the panel's 重新扫描 writes the SAME
+    // snapshot, so a freshly scanned wallpaper resolves here immediately.
+    const unsubscribe = store.subscribe(() => {
+      setSettings(store.getSnapshot())
+      setLibrary(store.getLibrary())
+      setLibraryError(store.getLibraryError())
+    })
+    void store.loadLibrary(api, false)
+    void api.desiredState()
+      .then(desired => { if (alive) store.mergeDesired(desired) })
+      .catch(() => undefined)
     return () => {
       alive = false
       unsubscribe()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api, store])
+
+  // Self-heal: an active wallpaper missing from the (possibly stale) library
+  // triggers one forced rescan — after that the id either resolves or the
+  // empty note shows instead of looping.
+  useEffect(() => {
+    if (settings.activeId === null) return
+    if (library === null) return
+    if (library.wallpapers.some(entry => entry.id === settings.activeId)) return
+    if (refreshedForRef.current === settings.activeId) return
+    refreshedForRef.current = settings.activeId
+    void store.loadLibrary(api, true)
+  }, [settings.activeId, library, api, store])
 
   // ------------------------------------------------ active id resolution
   const knownIds = useCallback((): Set<string> => {

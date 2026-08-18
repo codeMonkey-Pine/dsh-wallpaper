@@ -81,33 +81,36 @@ export function WallpaperPanel(props: { store: SettingsStore; api: WallpaperApi;
   const { store, api, controller } = props
   const settings = useSettings(store)
   const [panelOpen, setPanelOpen] = useState(() => controller.getSnapshot().panelOpen)
-  const [library, setLibrary] = useState<LibrarySnapshot | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [library, setLibrary] = useState<LibrarySnapshot | null>(() => store.getLibrary())
+  const [loading, setLoading] = useState(() => store.isLoadingLibrary())
+  const [error, setError] = useState<string | null>(() => store.getLibraryError())
   const [query, setQuery] = useState('')
   const [engineDir, setEngineDir] = useState('')
   const [steamDir, setSteamDir] = useState('')
 
   useEffect(() => controller.subscribe(() => setPanelOpen(controller.getSnapshot().panelOpen)), [controller])
 
-  const load = useCallback(async (force: boolean): Promise<void> => {
-    setLoading(true)
-    setError(null)
-    try {
-      const snapshot = await api.library(force)
-      setLibrary(snapshot)
+  // Mirror the shared store (the layer reads the same snapshot).
+  useEffect(() => store.subscribe(() => {
+    setLibrary(store.getLibrary())
+    setLoading(store.isLoadingLibrary())
+    setError(store.getLibraryError())
+  }), [store])
+
+  // Load the shared library on first open; the 重新扫描 button forces a host rescan.
+  useEffect(() => {
+    if (library === null) void store.loadLibrary(api, false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [api, store])
+
+  const rescan = useCallback(async (): Promise<void> => {
+    await store.loadLibrary(api, true)
+    const snapshot = store.getLibrary()
+    if (snapshot !== null) {
       setEngineDir(snapshot.engineDir ?? '')
       setSteamDir(snapshot.steamDir ?? '')
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : String(loadError))
-    } finally {
-      setLoading(false)
     }
-  }, [api])
-
-  useEffect(() => {
-    void load(false)
-  }, [load])
+  }, [api, store])
 
   const entries = useMemo(() => {
     const list = library?.wallpapers ?? []
@@ -136,20 +139,17 @@ export function WallpaperPanel(props: { store: SettingsStore; api: WallpaperApi;
   }
 
   const savePaths = async (): Promise<void> => {
-    setLoading(true)
     setError(null)
     try {
       const snapshot = await api.setPaths({
         engineDir: engineDir.trim() === '' ? '' : engineDir.trim(),
         steamDir: steamDir.trim() === '' ? '' : steamDir.trim(),
       })
-      setLibrary(snapshot)
+      store.applyLibrary(snapshot)
       setEngineDir(snapshot.engineDir ?? '')
       setSteamDir(snapshot.steamDir ?? '')
     } catch (pathError) {
       setError(pathError instanceof Error ? pathError.message : String(pathError))
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -194,7 +194,7 @@ export function WallpaperPanel(props: { store: SettingsStore; api: WallpaperApi;
               value={query}
               onChange={event => setQuery(event.target.value)}
             />
-            <button type="button" className="wp-button" disabled={loading} onClick={() => void load(true)}>
+            <button type="button" className="wp-button" disabled={loading} onClick={() => void rescan()}>
               {loading ? '…' : '重新扫描'}
             </button>
           </div>
