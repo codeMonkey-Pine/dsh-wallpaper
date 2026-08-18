@@ -1,7 +1,7 @@
 {
   "name": "dsh-wallpaper",
-  "owner": "code-newbie-1",
-  "url": "https://github.com/code-newbie-1/dsh-wallpaper",
+  "owner": "codeMonkey-Pine",
+  "url": "https://github.com/codeMonkey-Pine/dsh-wallpaper",
   "category": "ui",
   "description": {
     "en": "Wallpaper Engine integration for the dsh web GUI: scan the local WE library (Steam workshop 431960 + local projects) and use its wallpapers as the page background — image/video/web rendered natively, scene wallpapers as softened static previews — with a 壁纸设计 panel (opacity, scope, blur, vignette, fps, parallax, carousel, theme linkage) and agent tools wallpaper_scan/list/set/config.",

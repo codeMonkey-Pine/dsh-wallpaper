@@ -27,9 +27,9 @@ dsh 的「插件市场」（dshmarket 的 设置 → 插件市场）不直接收
 npm view dsh-wallpaper    # 返回 404 / E404 即未被占用，可以发布
 ```
 
-发布后若想改用你自己的作用域名（如 `@code-newbie-1/dsh-wallpaper`），改名只需动 3 处并重建：
+发布后若想改用你自己的作用域名（如 `@codeMonkey-Pine/dsh-wallpaper`），改名只需动 3 处并重建：
 
-1. `package.json` → `"name"`（并把 `repository.url` 里的 `code-newbie-1` 换成你的）
+1. `package.json` → `"name"`（并把 `repository.url` 里的 `codeMonkey-Pine` 换成你的）
 2. `tsdown.config.ts` → `PACKAGE_ID` 常量
 3. `cordis.patch.yml` → `insert[].name`（用户安装时的插件行名 = 包名）
 
@@ -45,7 +45,7 @@ Select-String -Path .\lib\client.js -Pattern '__ModuleLoader__.load'
 ```bash
 cd dsh-wallpaper
 git init && git add . && git commit -m "feat: Wallpaper Engine integration for dsh web GUI"
-git remote add origin https://github.com/code-newbie-1/dsh-wallpaper.git
+git remote add origin https://github.com/codeMonkey-Pine/dsh-wallpaper.git
 git push -u origin main
 ```
 
