@@ -24,6 +24,66 @@ const SCENE_ENHANCE_BLUR = 4
 const SCENE_ENHANCE_OPACITY = 0.85
 const SCENE_ENHANCE_VIGNETTE = 'radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.35) 100%)'
 
+/**
+ * Canvas-backed video renderer: the source <video> plays hidden and every new
+ * frame is copied into a <canvas> that carries the CSS filter. Chromium drops
+ * blur/drop-shadow filters on a playing <video> whenever a new frame is
+ * composited (crbug.com/40123694), so a canvas raster — an ordinary layer, not
+ * the video compositor — is the only reliable way to blur video wallpaper
+ * frames. The canvas is a replaced element, so object-fit still crops it; the
+ * hidden video keeps playback (autoplay, pause-on-blur) in one place.
+ */
+function VideoMedia(props: {
+  url: string
+  style: React.CSSProperties
+  onVideoMount?: (video: HTMLVideoElement | null) => void
+}) {
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const rafRef = useRef(0)
+  const lastTimeRef = useRef(-1)
+
+  useEffect(() => {
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    if (video === null || canvas === null) return
+    const context = canvas.getContext('2d')
+    if (context === null) return
+
+    const draw = (): void => {
+      rafRef.current = requestAnimationFrame(draw)
+      if (video.readyState < 2 || video.videoWidth === 0) return
+      const width = video.videoWidth
+      const height = video.videoHeight
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width
+        canvas.height = height
+      }
+      if (video.currentTime === lastTimeRef.current) return
+      lastTimeRef.current = video.currentTime
+      context.drawImage(video, 0, 0, width, height)
+    }
+    rafRef.current = requestAnimationFrame(draw)
+    return () => cancelAnimationFrame(rafRef.current)
+  }, [])
+
+  return React.createElement(React.Fragment, null,
+    React.createElement('canvas', { ref: canvasRef, style: props.style }),
+    React.createElement('video', {
+      ref: (node: HTMLVideoElement | null): void => {
+        videoRef.current = node
+        if (props.onVideoMount !== undefined) props.onVideoMount(node)
+      },
+      src: props.url,
+      autoPlay: true,
+      muted: true,
+      loop: true,
+      playsInline: true,
+      style: { display: 'none' },
+    }),
+  )
+}
+
 /** One wallpaper media element: image / video / web iframe / scene preview. */
 function MediaElement(props: {
   entry: WallpaperEntry
@@ -45,30 +105,36 @@ function MediaElement(props: {
   const filters: string[] = []
   const totalBlur = settings.blur + (enhanced ? SCENE_ENHANCE_BLUR : 0)
   if (totalBlur > 0) filters.push(`blur(${totalBlur}px)`)
-  if (settings.parallax) filters.push(`scale(${PARALLAX_SCALE})`)
-  // The filter and opacity live on the media element itself, not on a wrapper:
-  // Chromium composites a playing <video> (and an <iframe>) on its own layer,
-  // so a filter on an ancestor is ignored and blur would silently not render.
+  // Never add scale() to the filter chain: Chromium drops the whole filter
+  // (blur included) when a transform-like filter function joins the list, so
+  // the parallax overscan zoom lives on `transform` instead.
   const mediaStyle: React.CSSProperties = {
     width: '100%',
     height: '100%',
     display: 'block',
     opacity: (settings.opacity / 100) * (enhanced ? SCENE_ENHANCE_OPACITY : 1),
     filter: filters.length > 0 ? filters.join(' ') : undefined,
+    transform: settings.parallax ? `scale(${PARALLAX_SCALE})` : undefined,
   }
 
   let media: React.ReactNode
   const mediaUrl = rawUrl(entry.id, entry.file)
   if (entry.type === 'video') {
-    media = React.createElement('video', {
-      src: mediaUrl,
-      ref: props.onVideoMount,
-      autoPlay: true,
-      muted: true,
-      loop: true,
-      playsInline: true,
-      style: { ...mediaStyle, objectFit },
-    })
+    media = totalBlur > 0
+      ? React.createElement(VideoMedia, {
+          url: mediaUrl,
+          style: { ...mediaStyle, objectFit },
+          onVideoMount: props.onVideoMount,
+        })
+      : React.createElement('video', {
+          src: mediaUrl,
+          ref: props.onVideoMount,
+          autoPlay: true,
+          muted: true,
+          loop: true,
+          playsInline: true,
+          style: { ...mediaStyle, objectFit },
+        })
   } else if (entry.type === 'web') {
     const query: string[] = []
     if (entry.width !== undefined && entry.height !== undefined) query.push(`resolution=${entry.width}x${entry.height}`)
