@@ -1,77 +1,77 @@
 {
-    "name":  "dsh-wallpaper",
-    "description":  "Wallpaper Engine integration for the dsh web GUI: scan the local Wallpaper Engine library (Steam workshop 431960 + local projects), use its wallpapers as the page background (image / video / web / scene-preview), and control them from a right-side \u0027婢逛胶鐒婄拋鎹愵吀\u0027 panel (opacity, scope, fill, blur, vignette, fps, parallax, carousel, theme linkage). Agent tools wallpaper_scan / wallpaper_list / wallpaper_set / wallpaper_config.",
-    "version":  "0.1.2",
-    "type":  "module",
-    "engines":  {
-                    "node":  "^22.19.0 || \u003e=24.0.0"
-                },
-    "main":  "lib/index.js",
-    "exports":  {
-                    ".":  "./lib/index.js",
-                    "./client":  "./lib/client.js",
-                    "./package.json":  "./package.json"
-                },
-    "dsh":  {
-                "bundle":  {
-                               "patch":  "./cordis.patch.yml"
-                           },
-                "client":  {
-                               "inject":  [
-                                              "@deepseek-ai/dsh-client-runtime"
-                                          ],
-                               "platform":  "web"
-                           }
-            },
-    "peerDependencies":  {
-                             "@deepseek-ai/cordis":  "^4.0.1",
-                             "@deepseek-ai/dsh-host-webserver":  "^0.1.0-rc.6",
-                             "@deepseek-ai/dsh-llm":  "^0.1.0-rc.6",
-                             "@deepseek-ai/dsh-system-prompt":  "^0.1.0-rc.6",
-                             "@deepseek-ai/dsh-tools":  "^0.1.0-rc.6",
-                             "react":  "^18.2.0",
-                             "react-dom":  "^18.2.0",
-                             "schemastery":  "^3.18.0"
-                         },
-    "devDependencies":  {
-                            "@deepseek-ai/cordis":  "^4.0.1",
-                            "@deepseek-ai/dsh-host-webserver":  "^0.1.0-rc.6",
-                            "@deepseek-ai/dsh-llm":  "^0.1.0-rc.6",
-                            "@deepseek-ai/dsh-system-prompt":  "^0.1.0-rc.6",
-                            "@deepseek-ai/dsh-tools":  "^0.1.0-rc.6",
-                            "@types/node":  "^22.0.0",
-                            "@types/react":  "~18.3.1",
-                            "@types/react-dom":  "^18.3.5",
-                            "react":  "^18.3.1",
-                            "react-dom":  "^18.3.1",
-                            "schemastery":  "^3.18.0",
-                            "tsdown":  "0.22.2",
-                            "typescript":  "~5.7.2"
-                        },
-    "files":  [
-                  "lib",
-                  "src",
-                  "cordis.patch.yml",
-                  "README.md",
-                  "LICENSE"
-              ],
-    "keywords":  [
-                     "deepseek-harness",
-                     "dsh",
-                     "dsh-plugin",
-                     "wallpaper-engine",
-                     "wallpaper",
-                     "background"
-                 ],
-    "scripts":  {
-                    "build":  "tsdown",
-                    "bundle":  "tsdown",
-                    "watch":  "tsdown --watch",
-                    "typecheck":  "tsc --noEmit"
-                },
-    "license":  "Apache-2.0",
-    "repository":  {
-                       "type":  "git",
-                       "url":  "git+https://github.com/codeMonkey-Pine/dsh-wallpaper.git"
-                   }
+  "name": "dsh-wallpaper",
+  "description": "Wallpaper Engine integration for the dsh web GUI: scan the local Wallpaper Engine library (Steam workshop 431960 + local projects), use its wallpapers as the page background (image / video / web / scene-preview), and control them from a right-side '壁纸设计' panel (opacity, scope, fill, blur, vignette, fps, parallax, carousel, theme linkage). Agent tools wallpaper_scan / wallpaper_list / wallpaper_set / wallpaper_config.",
+  "version": "0.1.3",
+  "type": "module",
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime"
+      ],
+      "platform": "web"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-host-webserver": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-llm": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-system-prompt": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-tools": "^0.1.0-rc.6",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "schemastery": "^3.18.0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-host-webserver": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-llm": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-system-prompt": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-tools": "^0.1.0-rc.6",
+    "@types/node": "^22.0.0",
+    "@types/react": "~18.3.1",
+    "@types/react-dom": "^18.3.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "schemastery": "^3.18.0",
+    "tsdown": "0.22.2",
+    "typescript": "~5.7.2"
+  },
+  "files": [
+    "lib",
+    "src",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "wallpaper-engine",
+    "wallpaper",
+    "background"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "bundle": "tsdown",
+    "watch": "tsdown --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codeMonkey-Pine/dsh-wallpaper.git"
+  }
 }
