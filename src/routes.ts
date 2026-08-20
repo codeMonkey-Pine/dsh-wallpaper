@@ -297,7 +297,11 @@ function contentTypeOf(path: string): string {
 function cacheControlOf(path: string): string {
   const extension = extname(path).toLowerCase()
   if (extension === '.html' || extension === '.htm' || extension === '.json') return 'no-cache'
-  return 'private, max-age=3600'
+  // Media caches for a short window only: a stale 206 partial response from a
+  // previous host version (wrong suffix range) would otherwise black-screen
+  // the wallpaper until the cache expires. Media URLs carry MEDIA_CACHE_VERSION
+  // anyway; this just bounds the stale window for the same version.
+  return 'private, max-age=60'
 }
 
 /** Serve one file with Range support (video seeking). */

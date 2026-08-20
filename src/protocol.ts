@@ -139,8 +139,18 @@ export const DEFAULT_SETTINGS: WallpaperSettings = {
 /** localStorage key for the browser settings. */
 export const SETTINGS_KEY = 'dsh.wallpaper.v1'
 
+/**
+ * Cache-busting version for media URLs. Bump whenever the host's media
+ * serving behavior changes (e.g. the suffix byte-range fix): browsers keep
+ * stale Range responses (206 partial caches, max-age 3600) from the old host
+ * in the HTTP cache, and reusing them leaves a video stuck at readyState 0 —
+ * the exact "black screen after restart" report. A versioned URL forces every
+ * media request down a fresh cache key.
+ */
+export const MEDIA_CACHE_VERSION = '2'
+
 /** Build the raw-file URL for one wallpaper asset. */
 export function rawUrl(id: string, relativePath: string): string {
   const path = relativePath.split('/').map(encodeURIComponent).join('/')
-  return `${API.raw}/${encodeURIComponent(id)}/${path}`
+  return `${API.raw}/${encodeURIComponent(id)}/${path}?v=${MEDIA_CACHE_VERSION}`
 }
