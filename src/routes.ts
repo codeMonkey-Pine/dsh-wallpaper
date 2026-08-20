@@ -323,6 +323,11 @@ function serveFile(req: IncomingMessage, res: ServerResponse, absolute: string, 
     })
     const stream = createReadStream(absolute)
     stream.on('error', () => { try { res.destroy() } catch { /* closed */ } })
+    // When the client aborts (e.g. the video element seeks and re-requests),
+    // destroy the read stream — otherwise the server keeps reading the whole
+    // multi-hundred-MB file into a dead socket, saturating disk I/O and
+    // stalling every other request (the "network timeout" on wallpaper switch).
+    res.on('close', () => { if (!res.writableEnded) stream.destroy() })
     stream.pipe(res)
     return
   }
@@ -333,8 +338,20 @@ function serveFile(req: IncomingMessage, res: ServerResponse, absolute: string, 
     res.end()
     return
   }
-  let start = match[1] === '' || match[1] === undefined ? 0 : Number(match[1])
-  let end = match[2] === '' || match[2] === undefined ? size - 1 : Number(match[2])
+  // Resolve the byte range. `bytes=-N` is a SUFFIX request ("the last N
+  // bytes") — video players use it to read the moov atom from the END of
+  // large files; returning the first N bytes instead leaves the video stuck
+  // at readyState 0 (black screen).
+  let start: number
+  let end: number
+  if ((match[1] === '' || match[1] === undefined) && match[2] !== '' && match[2] !== undefined) {
+    const suffix = Number(match[2])
+    start = Math.max(0, size - suffix)
+    end = size - 1
+  } else {
+    start = match[1] === '' || match[1] === undefined ? 0 : Number(match[1])
+    end = match[2] === '' || match[2] === undefined ? size - 1 : Number(match[2])
+  }
   if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end >= size || start > end) {
     res.writeHead(416, { 'content-range': `bytes */${String(size)}` })
     res.end()
@@ -350,5 +367,6 @@ function serveFile(req: IncomingMessage, res: ServerResponse, absolute: string, 
   })
   const stream = createReadStream(absolute, { start, end })
   stream.on('error', () => { try { res.destroy() } catch { /* closed */ } })
+  res.on('close', () => { if (!res.writableEnded) stream.destroy() })
   stream.pipe(res)
 }

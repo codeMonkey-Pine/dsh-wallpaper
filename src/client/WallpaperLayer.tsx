@@ -36,6 +36,7 @@ const SCENE_ENHANCE_VIGNETTE = 'radial-gradient(ellipse at center, transparent 5
 function VideoMedia(props: {
   url: string
   style: React.CSSProperties
+  poster?: string
   onVideoMount?: (video: HTMLVideoElement | null) => void
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -49,6 +50,10 @@ function VideoMedia(props: {
     if (video === null || canvas === null) return
     const context = canvas.getContext('2d')
     if (context === null) return
+    // Explicitly start playback: a `display: none` video stays frozen at
+    // frame 0 in Chromium (autoplay never fires), which would leave the
+    // canvas raster showing a static — often black — first frame.
+    void video.play().catch(() => undefined)
 
     const draw = (): void => {
       rafRef.current = requestAnimationFrame(draw)
@@ -68,6 +73,12 @@ function VideoMedia(props: {
   }, [])
 
   return React.createElement(React.Fragment, null,
+    // A preview image under the canvas: the canvas stays transparent until
+    // the first decoded frame, so switching shows the preview instantly and
+    // never a black screen while the video loads.
+    props.poster !== undefined
+      ? React.createElement('img', { src: props.poster, alt: '', draggable: false, style: props.style })
+      : null,
     React.createElement('canvas', { ref: canvasRef, style: props.style }),
     React.createElement('video', {
       ref: (node: HTMLVideoElement | null): void => {
@@ -79,7 +90,10 @@ function VideoMedia(props: {
       muted: true,
       loop: true,
       playsInline: true,
-      style: { display: 'none' },
+      // Keep the source video "rendered" (off-screen, invisible) instead of
+      // display:none — Chromium throttles display:none media to a frozen
+      // frame, while an off-screen element plays normally.
+      style: { position: 'fixed', top: 0, left: 0, width: 1, height: 1, opacity: 0, pointerEvents: 'none' },
     }),
   )
 }
@@ -119,15 +133,18 @@ function MediaElement(props: {
 
   let media: React.ReactNode
   const mediaUrl = rawUrl(entry.id, entry.file)
+  const previewUrl = entry.preview !== '' ? rawUrl(entry.id, entry.preview) : undefined
   if (entry.type === 'video') {
     media = totalBlur > 0
       ? React.createElement(VideoMedia, {
           url: mediaUrl,
           style: { ...mediaStyle, objectFit },
+          poster: previewUrl,
           onVideoMount: props.onVideoMount,
         })
       : React.createElement('video', {
           src: mediaUrl,
+          poster: previewUrl,
           ref: props.onVideoMount,
           autoPlay: true,
           muted: true,
